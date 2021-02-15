@@ -4,10 +4,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class MyExecutor implements ExecutorService {
+
+
+public class MyExecutor extends Thread implements ExecutorService {
+
+    int signals;
+    Thread[] thread;
 
     public MyExecutor(int signals){
-
+        this.signals = signals;
+        this.thread = new Thread[signals];
     }
 
     @Override
@@ -36,8 +42,12 @@ public class MyExecutor implements ExecutorService {
     }
 
     @Override
-    public <T> Future<T> submit(Callable<T> task) {
-        return null;
+    public <T> Future<T> submit(Callable<T> task)
+    {
+        if (task == null) throw new NullPointerException();
+        RunnableFuture<T> ftask = new FutureTask<T>(task);
+        execute(ftask);
+        return ftask;
     }
 
     @Override
@@ -45,8 +55,19 @@ public class MyExecutor implements ExecutorService {
         return null;
     }
 
+
     @Override
     public Future<?> submit(Runnable task) {
+        Future<String> future = new FutureTask<String>(() ->"doing...");
+        for (int i = 0; i < this.signals; i++) {
+            if(this.thread[i] != null){
+                this.thread[i] = new Thread(task);
+                if(this.thread[i].getState() != State.TERMINATED)
+                {
+                    return future;
+                }
+            }
+        }
         return null;
     }
 
@@ -72,6 +93,6 @@ public class MyExecutor implements ExecutorService {
 
     @Override
     public void execute(Runnable command) {
-
+        command.run();
     }
 }
